@@ -74,6 +74,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	struct task_struct *p;
 	int i;
 	struct file *f;
+	long *	krnstack;
 
 	p = (struct task_struct *) get_free_page();
 	if (!p)
@@ -85,20 +86,49 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	p->father = current->pid;
 	p->counter = p->priority;
 	p->signal = 0;
+
+    krnstack = (long)(PAGE_SIZE + (long)p);
+    *(--krnstack) = ss & 0xffff;
+    *(--krnstack) = esp;
+    *(--krnstack) = eflags;
+    *(--krnstack) = cs & 0xffff;
+    *(--krnstack) = eip;
+    *(--krnstack) = ds & 0xffff;
+    *(--krnstack) = es & 0xffff;
+    *(--krnstack) = fs & 0xffff;
+    *(--krnstack) = gs & 0xffff;
+    *(--krnstack) = esi;
+    *(--krnstack) = edi;
+    *(--krnstack) = edx;
+    *(--krnstack) = (long)first_return_from_kernel;            //一个函数,汇编语言写的,为了弹出eax,ebx,ecx,edx,esi,edi,gs,fs,es,ds
+    *(--krnstack) = ebp;
+    *(--krnstack) = ecx;
+    *(--krnstack) = ebx;
+    *(--krnstack) = 0;
+    p->kernelstack = krnstack;
+
 	p->alarm = 0;
 	p->leader = 0;		/* process leadership doesn't inherit */
 	p->utime = p->stime = 0;
 	p->cutime = p->cstime = 0;
 	p->start_time = jiffies;
+//将当期进程寄存器信息存入TSS	
 	p->tss.back_link = 0;
+#if 1
+//创建内核栈并将当期内核栈存进去.
 	p->tss.esp0 = PAGE_SIZE + (long) p;
 	p->tss.ss0 = 0x10;
 	p->tss.eip = eip;
 	p->tss.eflags = eflags;
+#endif
+
+//这个eax为返回值,也就是说返回值为0时该进程为子进程.
 	p->tss.eax = 0;
 	p->tss.ecx = ecx;
 	p->tss.edx = edx;
 	p->tss.ebx = ebx;
+
+//创建用户栈并将当前栈存进去.
 	p->tss.esp = esp;
 	p->tss.ebp = ebp;
 	p->tss.esi = esi;
@@ -127,6 +157,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 		current->root->i_count++;
 	if (current->executable)
 		current->executable->i_count++;
+//内存跟着切换
 	set_tss_desc(gdt+(nr<<1)+FIRST_TSS_ENTRY,&(p->tss));
 	set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));
 	p->state = TASK_RUNNING;	/* do this last, just in case */

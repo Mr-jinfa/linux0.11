@@ -85,6 +85,7 @@ struct task_struct {
 	long signal;
 	struct sigaction sigaction[32];
 	long blocked;	/* bitmap of masked signals */
+	long kernelstack;
 /* various fields */
 	int exit_code;
 	unsigned long start_code,end_code,end_data,brk,start_stack;
@@ -114,7 +115,8 @@ struct task_struct {
  */
 #define INIT_TASK \
 /* state etc */	{ 0,15,15, \
-/* signals */	0,{{},},0, \
+/* signals sigaction  blocked*/	0,{{},},0, \
+/* kernelstack*/  PAGE_SIZE+(long)&init_task ,\
 /* ec,brk... */	0,0,0,0,0,0, \
 /* pid etc.. */	0,-1,0,0,0, \
 /* uid etc */	0,0,0,0,0,0, \
@@ -147,6 +149,8 @@ extern void add_timer(long jiffies, void (*fn)(void));
 extern void sleep_on(struct task_struct ** p);
 extern void interruptible_sleep_on(struct task_struct ** p);
 extern void wake_up(struct task_struct ** p);
+extern void switch_to(struct task_struct *, int);
+extern void first_return_from_kernel();
 
 /*
  * Entry into gdt where to find first TSS. 0-nul, 1-cs, 2-ds, 3-syscall
@@ -158,6 +162,7 @@ extern void wake_up(struct task_struct ** p);
 #define _LDT(n) ((((unsigned long) n)<<4)+(FIRST_LDT_ENTRY<<3))
 #define ltr(n) __asm__("ltr %%ax"::"a" (_TSS(n)))
 #define lldt(n) __asm__("lldt %%ax"::"a" (_LDT(n)))
+#define SWITCH_QUICK
 #define str(n) \
 __asm__("str %%ax\n\t" \
 	"subl %2,%%eax\n\t" \
@@ -170,6 +175,8 @@ __asm__("str %%ax\n\t" \
  * This also clears the TS-flag if the task we switched to has used
  * tha math co-processor latest.
  */
+ 
+#ifndef SWITCH_QUICK
 #define switch_to(n) {\
 struct {long a,b;} __tmp; \
 __asm__("cmpl %%ecx,current\n\t" \
@@ -183,7 +190,11 @@ __asm__("cmpl %%ecx,current\n\t" \
 	"1:" \
 	::"m" (*&__tmp.a),"m" (*&__tmp.b), \
 	"d" (_TSS(n)),"c" ((long) task[n])); \
-}
+)
+#else
+void switch_to(struct task_struct *, int);
+#endif
+void first_return_from_kernel();
 
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)
 
