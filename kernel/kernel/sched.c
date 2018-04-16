@@ -56,7 +56,12 @@ union task_union {
 };
 
 static union task_union init_task = {INIT_TASK,};
-struct tss_struct *tss = &(init_task.task.tss);
+/*
+*现在虽然不使用TSS进行任务切换了
+*但是Intel的这类中断处理机制还要保持
+*所以仍然需要有一个当前TSS,这个TSS就是0号进程的TSS,也就是说所有进程都用这个TSS
+*/
+struct tss_struct *tss = &(init_task.task.tss);	//定义指向0号进程的任务状态段指针
 
 long volatile jiffies=0;
 long startup_time=0;

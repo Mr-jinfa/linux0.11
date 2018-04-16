@@ -100,11 +100,13 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     *(--krnstack) = esi;
     *(--krnstack) = edi;
     *(--krnstack) = edx;
-    *(--krnstack) = (long)first_return_from_kernel;            //一个函数,汇编语言写的,为了弹出eax,ebx,ecx,edx,esi,edi,gs,fs,es,ds
+//一个函数,汇编语言写的,为了在iret时弹出eax,ebx,ecx,edx,esi,edi,gs,fs,es,ds
+    *(--krnstack) = (long)first_return_from_kernel;
     *(--krnstack) = ebp;
     *(--krnstack) = ecx;
     *(--krnstack) = ebx;
     *(--krnstack) = 0;
+   //将存放在PCB中的内核栈指针修改到初始化完成时内核栈的栈顶指针
     p->kernelstack = krnstack;
 
 	p->alarm = 0;

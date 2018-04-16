@@ -45,14 +45,14 @@ EFLAGS		= 0x24
 OLDESP		= 0x28
 OLDSS		= 0x2C
 
-ESP0 = 4	#add by jinfa 增加硬编码
+ESP0 = 4	# 因为在tss结构中ESP偏移4  add by jinfa 增加硬编码
 state	= 0		# these are offsets into the task-struct.
 counter	= 4
 priority = 8
 signal	= 12
 sigaction = 16		# MUST be 16 (=len of sigaction)
 blocked = (33*16)
-#kernelstack 532 #33*16 + 4 add by jinfa 增加硬编码
+kernelstack = 532 #33*16 + 4 add by jinfa 增加硬编码
 
 # offsets within sigaction
 sa_handler = 0
@@ -148,9 +148,8 @@ switch_to:
 	 movl tss,%ecx				#TSS中的内核栈指针的重写
 	 addl $4096,%ebx
 	 movl %ebx,ESP0(%ecx)
-	 			 
-	 kernelstack = 532			#切换内核栈
-	 movl %esp,kernelstack(%eax)
+
+	 movl %esp,kernelstack(%eax) #切换内核栈
 	 movl 8(%ebp),%ebx			#再取一下ebx，因为前面修改过ebx的值
 	 movl kernelstack(%ebx),%esp
 

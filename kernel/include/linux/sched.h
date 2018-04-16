@@ -149,7 +149,6 @@ extern void add_timer(long jiffies, void (*fn)(void));
 extern void sleep_on(struct task_struct ** p);
 extern void interruptible_sleep_on(struct task_struct ** p);
 extern void wake_up(struct task_struct ** p);
-extern void switch_to(struct task_struct *, int);
 extern void first_return_from_kernel();
 
 /*
@@ -194,7 +193,6 @@ __asm__("cmpl %%ecx,current\n\t" \
 #else
 void switch_to(struct task_struct *, int);
 #endif
-void first_return_from_kernel();
 
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)
 
