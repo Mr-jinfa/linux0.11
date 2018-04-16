@@ -12,6 +12,7 @@
 #include "unistd.h"
 #include <asm/segment.h>
 
+_syscall1(int, iam, const char*, name)
 
 void usage()
 {
