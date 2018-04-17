@@ -107,9 +107,11 @@ int do_exit(long code)
 	for (i=0 ; i<NR_TASKS ; i++)
 		if (task[i] && task[i]->father == current->pid) {
 			task[i]->father = 1;
-			if (task[i]->state == TASK_ZOMBIE)
+			if (task[i]->state == TASK_ZOMBIE){
+				fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'E', jiffies); //进程退出
 				/* assumption task[1] is always init */
 				(void) send_sig(SIGCHLD, task[1], 1);
+			}
 		}
 	for (i=0 ; i<NR_OPEN ; i++)
 		if (current->filp[i])
