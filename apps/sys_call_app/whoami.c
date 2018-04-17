@@ -11,6 +11,8 @@
 #include "unistd.h"
 #include <asm/segment.h>
 
+_syscall2(int, whoami, char*, name, unsigned int, size)
+
 void usage(void)
 {
 	printf("please input ./whoami \n");

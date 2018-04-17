@@ -45,12 +45,14 @@ EFLAGS		= 0x24
 OLDESP		= 0x28
 OLDSS		= 0x2C
 
+ESP0 = 4	# 因为在tss结构中ESP偏移4  add by jinfa 增加硬编码
 state	= 0		# these are offsets into the task-struct.
 counter	= 4
 priority = 8
 signal	= 12
 sigaction = 16		# MUST be 16 (=len of sigaction)
 blocked = (33*16)
+kernelstack = 532 #33*16 + 4 add by jinfa 增加硬编码
 
 # offsets within sigaction
 sa_handler = 0
@@ -67,6 +69,7 @@ nr_system_calls = 74	#这是系统调用总数。如果增删了系统调用，�
 .globl system_call,sys_fork,timer_interrupt,sys_execve
 .globl hd_interrupt,floppy_interrupt,parallel_interrupt
 .globl device_not_available, coprocessor_error
+.globl first_return_from_kernel,switch_to,tss
 
 .align 2
 bad_sys_call:
@@ -127,6 +130,54 @@ ret_from_sys_call:
 	pop %ds
 	iret
 
+.align 2
+switch_to:
+	 pushl %ebp
+	 movl %esp,%ebp
+	 pushl %ecx
+	 pushl %ebx
+	 pushl %eax
+	
+	 movl 8(%ebp),%ebx			#找到下一个PCB
+	 cmpl %ebx,current  		#看当前基址是否为当前PCB
+	 je 1f
+	 
+	 movl %ebx,%eax 			#切换PCB
+	 xchgl %eax,current			#eax指向当前进程PCB        edx和current都指向下一个进程PCB
+	 
+	 movl tss,%ecx				#TSS中的内核栈指针的重写
+	 addl $4096,%ebx
+	 movl %ebx,ESP0(%ecx)
+
+	 movl %esp,kernelstack(%eax) #切换内核栈
+	 movl 8(%ebp),%ebx			#再取一下ebx，因为前面修改过ebx的值
+	 movl kernelstack(%ebx),%esp
+
+
+	 movl 12(%ebp),%ecx			#切换LDT    负责取出对应LDT(next)的那个参数
+	 lldt %cx					#修改LDTR寄存器
+	 
+	 movl $0x17,%ecx
+	 mov %cx,%fs				#将fs偏移0x17位的数据存放到eax中
+	 cmpl %eax,last_task_used_math	#和后面的clts配合来处理协处理器
+	 jne 1f
+	 clts
+1:
+	 popl %eax
+	 popl %ebx
+	 popl %ecx
+	 popl %ebp
+ret
+		 
+first_return_from_kernel:
+	 popl %edx
+	 popl %edi
+	 popl %esi
+	 popl %gs
+	 popl %fs
+	 popl %es
+	 popl %ds
+iret
 .align 2
 coprocessor_error:
 	push %ds

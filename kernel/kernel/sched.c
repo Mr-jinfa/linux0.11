@@ -56,6 +56,12 @@ union task_union {
 };
 
 static union task_union init_task = {INIT_TASK,};
+/*
+*现在虽然不使用TSS进行任务切换了
+*但是Intel的这类中断处理机制还要保持
+*所以仍然需要有一个当前TSS,这个TSS就是0号进程的TSS,也就是说所有进程都用这个TSS
+*/
+struct tss_struct *tss = &(init_task.task.tss);	//定义指向0号进程的任务状态段指针
 
 long volatile jiffies=0;
 long startup_time=0;
@@ -105,6 +111,7 @@ void schedule(void)
 {
 	int i,next,c;
 	struct task_struct ** p;
+	struct task_struct *pnext = &(init_task.task);
 
 /* check alarm, wake up any interruptible tasks that have got a signal */
 
@@ -116,7 +123,10 @@ void schedule(void)
 				}
 			if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) &&
 			(*p)->state==TASK_INTERRUPTIBLE)
+			{
 				(*p)->state=TASK_RUNNING;
+				fprintk(3, "%ld\t%c\t%ld\n", (*p)->pid, 'J', jiffies); //就绪态
+			}
 		}
 
 /* this is the scheduler proper: */
@@ -130,7 +140,7 @@ void schedule(void)
 			if (!*--p)
 				continue;
 			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
-				c = (*p)->counter, next = i;
+				c = (*p)->counter, next = i, pnext = *p;
 		}
 		if (c) break;
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
@@ -138,11 +148,27 @@ void schedule(void)
 				(*p)->counter = ((*p)->counter >> 1) +
 						(*p)->priority;
 	}
-	switch_to(next);
+	if(task[next]->pid != current->pid)
+	{
+		if(current->state==TASK_RUNNING)
+			fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'J', jiffies);
+		fprintk(3, "%ld\t%c\t%ld\n", task[next]->pid, 'R', jiffies); //下一个进程为运行态
+	}
+	//从切TSS到切PCB、内核栈、LDT地址映射表.
+	switch_to(pnext, _LDT(next));
 }
 
 int sys_pause(void)
 {
+	static char i=0;
+	
+	if(current->pid == 0 && !i)
+	{
+		i=1;
+		fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //阻塞态
+	}
+	else
+		fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //阻塞态
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
 	return 0;
@@ -159,6 +185,7 @@ void sleep_on(struct task_struct **p)
 	tmp = *p;
 	*p = current;
 	current->state = TASK_UNINTERRUPTIBLE;
+	fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //进入阻塞态
 	schedule();
 	if (tmp)
 		tmp->state=0;
@@ -175,19 +202,24 @@ void interruptible_sleep_on(struct task_struct **p)
 	tmp=*p;
 	*p=current;
 repeat:	current->state = TASK_INTERRUPTIBLE;
+	fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //进入阻塞态
 	schedule();
 	if (*p && *p != current) {
 		(**p).state=0;
 		goto repeat;
 	}
 	*p=NULL;
-	if (tmp)
+	if (tmp){
+		fprintk(3, "%ld\t%c\t%ld\n", tmp->pid, 'J', jiffies); //就绪态
 		tmp->state=0;
+	}
 }
 
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
+		if((**p).state != TASK_RUNNING)
+			fprintk(3, "%ld\t%c\t%ld\n", (**p).pid, 'J', jiffies); //就绪态
 		(**p).state=0;
 		*p=NULL;
 	}
