@@ -167,7 +167,7 @@ int sys_pause(void)
 		i=1;
 		fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //阻塞态
 	}
-	else
+	else if(current->pid != 0)
 		fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //阻塞态
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
