@@ -35,5 +35,16 @@ void sem_v(int semid, int semnum)
 
 	semop(semid, &sops, 1);
 }
+void del_sem()
+{    
+    //删除信号量
+    union semun sem_union;
+
+    if(semctl(sem_id, 0, IPC_RMID, sem_union) == -1)
+        fprintf(stderr, "Failed to delete semaphore\n");
+    else  
+        fprintf(stdout, "已经删除信号量\n");
+
+}
 
 

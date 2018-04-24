@@ -33,34 +33,21 @@ int get_bit(int bit)
 		bit /=10;
 	}
 }
-void del_sem()    
-{    
-    //删除信号量
-    union semun sem_union;    
-    
-    if(semctl(sem_id, 0, IPC_RMID, sem_union) == -1)    
-        fprintf(stderr, "Failed to delete semaphore\n");   
-    else  
-        fprintf(stdout, "已经删除信号量\n");   
-  
-}
 
-int main(int argc, char *argv[])    
+int main(int argc, char *argv[])
 {
     char index = 1, width=0,circul=0;
-    union semun sem_union;
-    sem_union.val = 1;  //一开始文件无数据,所以初始化为0
     #ifdef UBANTU
-    
-    sem_id = semget((key_t)sem_name, 2, IPC_CREAT|IPC_EXCL|0666);   
+    sem_id = semget((key_t)sem_name, 2, IPC_CREAT|IPC_EXCL|0666);
     if(sem_id >= 0)
-	{fprintf(stderr,"-1\n");
-		// 对信号量进行初始化
+	{
+		fprintf(stderr,"sem init\n");
 		init_sem(sem_id, SPACE, 1);
 		init_sem(sem_id, DATA, 0);
 	}
-	else if(sem_id == -1 && errno == EEXIST)  //如果之前已经创建
-	{fprintf(stderr,"0\n");
+	else if(sem_id == -1 && errno == EEXIST)
+	{
+		fprintf(stderr,"sem have create\n");
 		sem_id = semget((key_t)sem_name, 2, 0666);
 	}
 	else if(sem_id == -1)
@@ -75,7 +62,7 @@ int main(int argc, char *argv[])
 	struct share_subclass subc;
 	int var=0,i;	
 	char c,k=0,n,m;
-    while(circul <= 3)
+    while(circul <= 2)
     {
 		//回卷
 		fseek(share_file,0,SEEK_SET);
@@ -112,7 +99,7 @@ int main(int argc, char *argv[])
 					n--; m++;
 				}
 			}
-			
+
 			memcpy(subc.data, c_data, width);
 			fwrite(subc.data, size_with, 1, share_file);	/*width+1方便观察*/
 			fflush(share_file);
@@ -121,15 +108,24 @@ int main(int argc, char *argv[])
 			usleep(500000);
 			global_var ++;
 		}
-		
     	circul++;
 //    	free(subc.data);
        
     }
-    printf("\n%d - finished\n", getpid());     
+    
+	sem_p(sem_id, SPACE);
+	
+	char c_q[size_with]={NULL, NULL, NULL,NULL,};
+	c_q[0] = 'q';
+    fwrite(&c_q[0], size_with, 1, share_file);	/*width+1方便观察*/
+	fflush(share_file);
+	/* 给两个消费者用 */
+	sem_v(sem_id, DATA);
+	sem_v(sem_id, DATA);
+    printf("\n%d - finished\n", getpid());
 	fclose(share_file);
-// 	del_sem(); 
+ 	del_sem(); 
     return 0;
-}    
+}
    
 

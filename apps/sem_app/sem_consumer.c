@@ -3,12 +3,6 @@
 key_t sem_id;
 char c_data[size_with] = {0};
 
-
-/* 定义共享文件中单个条目格式 */
-struct share_subclass {
-	char *data;//数据域:
-};
-
 int get_bit(int bit)
 {
 	int count=1;
@@ -31,24 +25,24 @@ void *inver_order(char *__dest, char *__src, int __n)
 	return __dest;
 }
 
-int main(int argc, char *argv[])    
+int main(int argc, char *argv[])
 {    
-    int index = 0,width=0;
-    union semun sem_union;
-    sem_union.val = 1;
+
+    int index = 0,width=0, g_null=0;
+    pthread_mutex_t m;
+	pthread_mutex_init(&m, NULL);
+	
     #ifdef UBANTU
 	sem_id = semget((key_t)sem_name, 2, IPC_CREAT|IPC_EXCL|0666);   
 	if(sem_id >= 0)
 	{
-	
-	fprintf(stderr,"-1\n");
-		// 对信号量进行初始化
+		fprintf(stderr,"sem init\n");
 		init_sem(sem_id, SPACE, 1);
 		init_sem(sem_id, DATA, 0);
 	}
-	else if(sem_id == -1 && errno == EEXIST)  //如果之前已经创建
+	else if(sem_id == -1 && errno == EEXIST)
 	{
-		fprintf(stderr,"0\n");
+		fprintf(stderr,"sem have create\n");
 		sem_id = semget((key_t)sem_name, 2, 0666);
 	}
 	else if(sem_id == -1)
@@ -58,25 +52,16 @@ int main(int argc, char *argv[])
 	}
     #endif
     FILE *share_file = fopen(fbuff, "r");
-    
-	struct share_subclass subc;
-	char c[1];
+	fseek(share_file,0,SEEK_SET);
 	
-	int i=0,g_null=0;
-	subc.data = malloc(size_with);
-//	fprintf(stderr,"1\n");
 	while(1)
 	{
-//		fprintf(stderr,"2\n");
+		pthread_mutex_lock(&m);
 		sem_p(sem_id, DATA);
 		/*读一个数*/
 		while(1)
 		{
-		
-//		fprintf(stderr,"3\n");
 			fread(&c_data[ width], 1, 1, share_file);
-			
-//			fprintf(stderr,"4\n");
 			while(c_data[width] ==NULL){	/*将NULL读出*/
 				width++;
 				fread(&c_data[ width], 1, 1, share_file);
@@ -86,35 +71,36 @@ int main(int argc, char *argv[])
 					g_null = 2;
 					break;
 				}
-//				fprintf(stderr,"5 :%d\n", width);
 			}
 			if(g_null){
 				g_null =0;
 				if(g_null !=2)
-					fseek(share_file,-1, SEEK_CUR);
-				
-//				fprintf(stderr,"6\n");
+				fseek(share_file,-1, SEEK_CUR);
 				break;
 			}
 			width++;
 		}
-		width =0;
+		/*回卷*/
+		if(ftell(share_file) == size_with*10 -1)
+			fseek(share_file,0,SEEK_SET);
+		/* quit */
+		if(c_data[0] == 'q')
+			break;
+
 		if(c_data[0] !=NULL){
-			fprintf(stderr,"%d: ", getpid());
+			fprintf(stderr,"%d: ",getpid());
 			fprintf(stderr,"%s	ftell:%d \n", c_data, ftell(share_file));
 		}
+		width =0;
 		sem_v(sem_id, SPACE);
+		pthread_mutex_unlock(&m);
 		usleep(500000);
-		/*回卷*/
-		if(ftell(share_file) == size_with*10 -1)			
-			fseek(share_file,0,SEEK_SET);
-			
-	}		
+	}
        
     
-    printf("\n%d - finished\n", getpid());     
+    printf("\n%d - finished\n", getpid());
 	fclose(share_file);
-	del_sem();    
+//	del_sem();    
    
     return 0;
 }    
