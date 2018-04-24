@@ -40,12 +40,15 @@ int main(int argc, char *argv[])
 	sem_id = semget((key_t)sem_name, 2, IPC_CREAT|IPC_EXCL|0666);   
 	if(sem_id >= 0)
 	{
+	
+	fprintf(stderr,"-1\n");
 		// 对信号量进行初始化
-		init_sem(sem_id, SPACE, 0);
+		init_sem(sem_id, SPACE, 1);
 		init_sem(sem_id, DATA, 0);
 	}
 	else if(sem_id == -1 && errno == EEXIST)  //如果之前已经创建
 	{
+		fprintf(stderr,"0\n");
 		sem_id = semget((key_t)sem_name, 2, 0666);
 	}
 	else if(sem_id == -1)
@@ -58,34 +61,55 @@ int main(int argc, char *argv[])
     
 	struct share_subclass subc;
 	char c[1];
+	
+	int i=0,g_null=0;
+	subc.data = malloc(size_with);
+//	fprintf(stderr,"1\n");
 	while(1)
 	{
-		int i=0;
-		for(i=0; i<9; i++)
+//		fprintf(stderr,"2\n");
+		sem_p(sem_id, DATA);
+		/*读一个数*/
+		while(1)
 		{
-			sem_p(sem_id, DATA);			
-			subc.data = malloc(width);
-			fprintf(stderr,"%d: ", getpid());
-			while(1)
-			{
-				fread(&c_data[size_with- width], 1, 1, share_file);	//倒序存储
-				if(c_data[size_with- width] ==NULL){
+		
+//		fprintf(stderr,"3\n");
+			fread(&c_data[ width], 1, 1, share_file);
+			
+//			fprintf(stderr,"4\n");
+			while(c_data[width] ==NULL){	/*将NULL读出*/
+				width++;
+				fread(&c_data[ width], 1, 1, share_file);
+				g_null = 1;
+				/*ubantu 文件缓冲区4K*/
+				if(width >=2048){	/* 消费者先运行时,生产者写入数据慢(fflush)导致这里段错误 */
+					g_null = 2;
 					break;
 				}
-				width++;
+//				fprintf(stderr,"5 :%d\n", width);
 			}
-			
-			fprintf(stderr,"%s", &c_data[size_with-width + 1]);
-			width = 0;
-//			sem_v(sem_id, SPACE);
-			fprintf(stderr,"\n");
-			usleep(500000);
-
+			if(g_null){
+				g_null =0;
+				if(g_null !=2)
+					fseek(share_file,-1, SEEK_CUR);
+				
+//				fprintf(stderr,"6\n");
+				break;
+			}
+			width++;
 		}
-		
-		//回卷
-		fseek(share_file,0,SEEK_SET);
-	}
+		width =0;
+		if(c_data[0] !=NULL){
+			fprintf(stderr,"%d: ", getpid());
+			fprintf(stderr,"%s	ftell:%d \n", c_data, ftell(share_file));
+		}
+		sem_v(sem_id, SPACE);
+		usleep(500000);
+		/*回卷*/
+		if(ftell(share_file) == size_with*10 -1)			
+			fseek(share_file,0,SEEK_SET);
+			
+	}		
        
     
     printf("\n%d - finished\n", getpid());     
