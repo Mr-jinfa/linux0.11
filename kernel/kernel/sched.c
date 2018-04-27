@@ -114,7 +114,7 @@ void schedule(void)
 	struct task_struct *pnext = &(init_task.task);
 
 /* check alarm, wake up any interruptible tasks that have got a signal */
-
+/*从后往前遍历唤醒已经得到信号的进程*/
 	for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 		if (*p) {
 			if ((*p)->alarm && (*p)->alarm < jiffies) {
@@ -123,14 +123,19 @@ void schedule(void)
 				}
 			if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) &&
 			(*p)->state==TASK_INTERRUPTIBLE)	/*除了信号位图外还有其他信号的话，就将它设为就绪态*/
+			if ((*p)->alarm && (*p)->alarm < jiffies) {		/*该进程已经过期?*/
+					(*p)->signal |= (1<<(SIGALRM-1));	/*给该进程的信号位图设置SIGALRM*/
+					(*p)->alarm = 0;
+				}
+			if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) &&	/*判断该进程是否除了被阻塞信号外还有其他信号*/
+			(*p)->state==TASK_INTERRUPTIBLE)	/*并且处于可以中断的阻塞状态*/
 			{
-				(*p)->state=TASK_RUNNING;
+				(*p)->state=TASK_RUNNING;	/*将任务切成就绪态*/
 				fprintk(3, "%ld\t%c\t%ld\n", (*p)->pid, 'J', jiffies); //就绪态
 			}
 		}
 
 /* this is the scheduler proper: */
-
 	while (1) {
 		c = -1;
 		next = 0;
@@ -141,8 +146,12 @@ void schedule(void)
 				continue;
 			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)	/*找出counter最大的就绪进程*/
 				c = (*p)->counter, next = i, pnext = *p;
+				continue;	/*没任务,跳过.--i,--p,很明显没处理进程0*/
+			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)	/*取出counter值最大的就绪态进程*/
+				c = (*p)->counter, next = i, pnext = *p;	/*pnext为下一个即将要切换的进程的PCB,next就是下标了*/
 		}
 		if (c) break;
+/*如果所有进程时间片耗光,就要根据进程优先级priority重置counter*/
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 			if (*p)
 				(*p)->counter = ((*p)->counter >> 1) +
@@ -151,8 +160,8 @@ void schedule(void)
 	if(task[next]->pid != current->pid)
 	{
 		if(current->state==TASK_RUNNING)
-			fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'J', jiffies);
-		fprintk(3, "%ld\t%c\t%ld\n", task[next]->pid, 'R', jiffies); //下一个进程为运行态
+			fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'J', jiffies);	/*当前进程转就绪态*/
+		fprintk(3, "%ld\t%c\t%ld\n", task[next]->pid, 'R', jiffies);	/*下一个进程为运行态*/
 	}
 	//从切TSS到切PCB、内核栈、LDT地址映射表.
 	switch_to(pnext, _LDT(next));
