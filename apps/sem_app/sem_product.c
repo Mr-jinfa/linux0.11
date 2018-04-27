@@ -36,39 +36,39 @@ int get_bit(int bit)
 
 int main(int argc, char *argv[])
 {
-    char index = 1, width=0,circul=0;
+    char index = 1, width=0,circul=0, count=100  
+	char c_q[size_with]={NULL};
     #ifdef UBANTU
-    sem_id = semget((key_t)sem_name, 2, IPC_CREAT|IPC_EXCL|0666);
+    sem_id = semget((key_t)sem_name, 2,IPC_CREAT|IPC_EXCL|0666);
     if(sem_id >= 0)
-	{
 		fprintf(stderr,"sem init\n");
-		init_sem(sem_id, SPACE, 1);
-		init_sem(sem_id, DATA, 0);
-	}
 	else if(sem_id == -1 && errno == EEXIST)
 	{
 		fprintf(stderr,"sem have create\n");
-		sem_id = semget((key_t)sem_name, 2, 0666);
+		sem_id = semget((key_t)sem_name, 2,0666);	
 	}
 	else if(sem_id == -1)
 	{
 		perror("semget() failed");
 		exit(0);
 	}
-    #endif
+	init_sem(sem_id, empty, 1);
+	init_sem(sem_id, full, 0);
+     #endif
     
-    FILE *share_file = fopen(fbuff, "w");
+    FILE *share_file = fopen(fbuff, "w+");
 	fseek(share_file,0,SEEK_SET);
 	struct share_subclass subc;
 	int var=0,i;	
 	char c,k=0,n,m;
-    while(circul <= 2)
+	
+    while(circul < count)
     {
 		//回卷
 		fseek(share_file,0,SEEK_SET);
-		for(index=0; index<10; index++)
+		for(index=0; index< 10; index++)
 		{
-			sem_p(sem_id, SPACE);
+			sem_p(sem_id, empty);
 	    	width = get_bit(global_var);
 			subc.data = malloc(width);
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 					n--; m++;
 				}
 			}
-			else{			
+			else{
 				m = 0; n=width-1;
 				while(n> m){
 					c = c_data[n];
@@ -101,30 +101,25 @@ int main(int argc, char *argv[])
 			}
 
 			memcpy(subc.data, c_data, width);
-			fwrite(subc.data, size_with, 1, share_file);	/*width+1方便观察*/
+			/*size_with方便消费者观察*/
+			fwrite(subc.data, size_with, 1, share_file);
 			fflush(share_file);
 			fprintf(stderr,"写入:%s	\n", subc.data);
-			sem_v(sem_id, DATA);
-			usleep(500000);
+			sem_v(sem_id, full);
 			global_var ++;
+			usleep(500000);
 		}
-    	circul++;
-//    	free(subc.data);
-       
+		circul++;
+    	free(subc.data);
     }
-    
-	sem_p(sem_id, SPACE);
-	
-	char c_q[size_with]={NULL, NULL, NULL,NULL,};
 	c_q[0] = 'q';
-    fwrite(&c_q[0], size_with, 1, share_file);	/*width+1方便观察*/
+	sem_p(sem_id, empty);
+    fwrite(&c_q[0], size_with, 1, share_file);
 	fflush(share_file);
-	/* 给两个消费者用 */
-	sem_v(sem_id, DATA);
-	sem_v(sem_id, DATA);
-    printf("\n%d - finished\n", getpid());
+	sem_v(sem_id, full);
 	fclose(share_file);
- 	del_sem(); 
+	
+	del_sem();
     return 0;
 }
    

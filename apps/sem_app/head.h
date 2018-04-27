@@ -34,14 +34,16 @@ struct sembuf{    //这个在Linux0.11使用
 #endif
 
 
-#define SPACE 0
-#define DATA  1
+#define empty 0
+#define full  1
+
+
 extern 	key_t sem_id;
 
 #define sem_name 668
 #define fbuff  "sem_buff.txt"    //用文件建立一个共享缓冲区
+
 #define size_with	4
 extern 	key_t sem_id;
-
 
 #endif
