@@ -118,11 +118,11 @@ void schedule(void)
 	for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 		if (*p) {
 			if ((*p)->alarm && (*p)->alarm < jiffies) {
-					(*p)->signal |= (1<<(SIGALRM-1));
+					(*p)->signal |= (1<<(SIGALRM-1));	/*设置信号位图目的是让系统尽快切换到该进程。*/
 					(*p)->alarm = 0;
 				}
 			if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) &&
-			(*p)->state==TASK_INTERRUPTIBLE)
+			(*p)->state==TASK_INTERRUPTIBLE)	/*除了信号位图外还有其他信号的话，就将它设为就绪态*/
 			{
 				(*p)->state=TASK_RUNNING;
 				fprintk(3, "%ld\t%c\t%ld\n", (*p)->pid, 'J', jiffies); //就绪态
@@ -139,7 +139,7 @@ void schedule(void)
 		while (--i) {
 			if (!*--p)
 				continue;
-			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
+			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)	/*找出counter最大的就绪进程*/
 				c = (*p)->counter, next = i, pnext = *p;
 		}
 		if (c) break;

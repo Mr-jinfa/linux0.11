@@ -135,11 +135,12 @@ void main(void)		/* This really IS void, no error here. */
 	floppy_init();
 	sti();
 	move_to_user_mode();
+	/*获取硬盘分区信息、加载虚拟盘（如果有的话）、安装根文件系统设备*/
 	setup((void *) &drive_info);
 	(void) open("/dev/tty0",O_RDWR,0);
-	(void) dup(0);
-	(void) dup(0);
-/*����log�ļ�*/
+	(void) dup(0);	/*复制句柄，产生句柄1号*/
+	(void) dup(0);	/*复制句柄，产生句柄2号*/
+/*创建log文件*/
 	(void) open("/var/process.log",O_CREAT|O_TRUNC|O_WRONLY,0666);
 	if (!fork()) {		/* we count on this going ok */
 		init();
@@ -199,7 +200,7 @@ void init(void)
 		}
 		if (!pid) {
 			close(0);close(1);close(2);
-			setsid();
+			setsid();	//新的子进程创建一个会话期
 			(void) open("/dev/tty0",O_RDWR,0);
 			(void) dup(0);
 			(void) dup(0);
