@@ -227,7 +227,7 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
-		if((**p).state != TASK_RUNNING)
+		if((**p).state == TASK_RUNNING)
 			fprintk(3, "%ld\t%c\t%ld\n", (**p).pid, 'J', jiffies); //就绪态
 		(**p).state=0;
 		*p=NULL;
