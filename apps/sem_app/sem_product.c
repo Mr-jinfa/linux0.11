@@ -6,69 +6,83 @@
 */
 
 #include "head.h"
-
-
-/* 定义共享文件中单个条目格式 */
-struct share_subclass {
-	char *data;//数据域:
-};
-
-static void del_semvalue();
+#ifdef UBANTU
+key_t sem_id;
+#endif
 
 char c_data[size_with] = {0};
 int global_var=0;
 #define SPACE 0
 #define DATA  1
-key_t sem_id;
+_syscall2(sem_t*, sem_open, const char *, name, unsigned int, value)
+_syscall1(int, sem_wait, sem_t*, sem)
+_syscall1(int, sem_post, sem_t*, sem)
+_syscall1(int, sem_unlink, const char *, name)
 
 int get_bit(int bit)
 {
-	int count=1;
+	int __count=1;
 	/* 回调思想 */
 	while(1)
 	{
 		if(!( bit /10))
-			return count;
-		count ++;
+			return __count;
+		__count ++;
 		bit /=10;
 	}
 }
 
 int main(int argc, char *argv[])
 {
-    char index = 1, width=0,circul=0, count=100  
+    char index = 1, width=0,circul=0;
 	char c_q[size_with]={NULL};
-    #ifdef UBANTU
+	struct share_subclass subc;
+	int var=0; int i=0; int share_file=0;
+	char k=0; char n; char m; char c;
+#ifdef UBANTU
     sem_id = semget((key_t)sem_name, 2,IPC_CREAT|IPC_EXCL|0666);
     if(sem_id >= 0)
-		fprintf(stderr,"sem init\n");
+	{
+	   fprintf(stderr,"sem init\n");
+	   init_sem(sem_id, empty, 10);
+	   init_sem(sem_id, full, 0);
+	}
 	else if(sem_id == -1 && errno == EEXIST)
 	{
 		fprintf(stderr,"sem have create\n");
-		sem_id = semget((key_t)sem_name, 2,0666);	
+		sem_id = semget((key_t)sem_name, 2,0666);
+		init_sem(sem_id, empty, 10);
+	   	init_sem(sem_id, full, 0);
 	}
 	else if(sem_id == -1)
 	{
 		perror("semget() failed");
 		exit(0);
 	}
-	init_sem(sem_id, empty, 1);
-	init_sem(sem_id, full, 0);
-     #endif
+#else
+	sem_t *s_empty, *s_full;
+	s_empty = sem_open(sem_empty, 10) ;
+	s_full = sem_open(sem_full, 0);
+	if(s_empty==NULL || s_full==NULL)
+	{
+		fprintf(stderr,"get sem fail\n");
+		return -1;
+	}
+#endif
     
-    FILE *share_file = fopen(fbuff, "w+");
-	fseek(share_file,0,SEEK_SET);
-	struct share_subclass subc;
-	int var=0,i;	
-	char c,k=0,n,m;
-	
+    share_file = open(fbuff, O_RDWR|O_CREAT|O_TRUNC|O_APPEND, 0666);
     while(circul < count)
     {
-		//回卷
-		fseek(share_file,0,SEEK_SET);
+		/*回卷*/
+		lseek(share_file,0,SEEK_SET);
 		for(index=0; index< 10; index++)
 		{
+		
+#ifdef UBANTU
 			sem_p(sem_id, empty);
+#else
+			sem_wait(s_empty);
+#endif
 	    	width = get_bit(global_var);
 			subc.data = malloc(width);
 
@@ -102,24 +116,41 @@ int main(int argc, char *argv[])
 
 			memcpy(subc.data, c_data, width);
 			/*size_with方便消费者观察*/
-			fwrite(subc.data, size_with, 1, share_file);
-			fflush(share_file);
-			fprintf(stderr,"写入:%s	\n", subc.data);
+			write(share_file, subc.data, size_with);
+			/*fprintf(stderr,"写入:%s	\n", subc.data);*/
+#ifdef UBANTU
 			sem_v(sem_id, full);
+			usleep(250000);
+#else
+			sem_post(s_full);
+			sleep(5);
+#endif
 			global_var ++;
-			usleep(500000);
 		}
 		circul++;
     	free(subc.data);
     }
 	c_q[0] = 'q';
+#ifdef UBANTU
 	sem_p(sem_id, empty);
-    fwrite(&c_q[0], size_with, 1, share_file);
-	fflush(share_file);
+    write(share_file, &c_q[0], size_with);
 	sem_v(sem_id, full);
-	fclose(share_file);
+#else
+	sem_wait(s_empty);
+	write(share_file, &c_q[0], size_with);
+	sem_post(s_full);
+#endif
+#ifdef UBANTU
+		sem_p(sem_id, empty);
+		write(share_file, &c_q[0], size_with);
+		sem_v(sem_id, full);
+#else
+		sem_wait(s_empty);
+		write(share_file, &c_q[0], size_with);
+		sem_post(s_full);
+#endif
+	close(share_file);
 	
-	del_sem();
     return 0;
 }
    

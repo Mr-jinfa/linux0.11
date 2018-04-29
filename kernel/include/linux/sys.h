@@ -1,3 +1,6 @@
+#include <sys/sem.h>
+#include <sys/lock.h>
+
 extern int sys_setup();
 extern int sys_exit();
 extern int sys_fork();
@@ -73,6 +76,16 @@ extern int sys_setregid();
 extern int sys_whoami();
 extern int sys_iam();
 
+extern sem_t* sys_sem_open();
+extern int sys_sem_wait();
+extern int sys_sem_post();
+extern int sys_sem_unlink();
+
+extern lock_t *sys_lock_init();
+extern void sys_mutex_lock();
+extern void sys_mutex_unlock();
+extern int sys_lock_del();
+
 
 fn_ptr sys_call_table[] = { sys_setup, sys_exit, sys_fork, sys_read,
 sys_write, sys_open, sys_close, sys_waitpid, sys_creat, sys_link,
@@ -86,4 +99,5 @@ sys_getgid, sys_signal, sys_geteuid, sys_getegid, sys_acct, sys_phys,
 sys_lock, sys_ioctl, sys_fcntl, sys_mpx, sys_setpgid, sys_ulimit,
 sys_uname, sys_umask, sys_chroot, sys_ustat, sys_dup2, sys_getppid,
 sys_getpgrp, sys_setsid, sys_sigaction, sys_sgetmask, sys_ssetmask,
-sys_setreuid,sys_setregid, sys_whoami, sys_iam, };
+sys_setreuid,sys_setregid, sys_whoami, sys_iam, sys_sem_open, sys_sem_wait, sys_sem_post, sys_sem_unlink,
+sys_lock_init, sys_mutex_lock, sys_mutex_unlock, sys_lock_del};

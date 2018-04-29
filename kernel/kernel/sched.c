@@ -195,8 +195,10 @@ void sleep_on(struct task_struct **p)
 	*p = current;
 	current->state = TASK_UNINTERRUPTIBLE;
 	fprintk(3, "%ld\t%c\t%ld\n", current->pid, 'W', jiffies); //进入阻塞态
-	schedule();
-	if (tmp)
+	schedule();	
+	/* 只有wake_up函数操作时才进来这里 */
+	*p=tmp;	/* 队列头需要改变 */
+	if (tmp)	/* 唤醒下一个进程 ,  这    操作会唤醒所有进程*/
 		tmp->state=0;
 }
 
@@ -217,7 +219,7 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 		(**p).state=0;
 		goto repeat;
 	}
-	*p=NULL;
+	*p=tmp;	/* 队列头需要改变 */
 	if (tmp){
 		fprintk(3, "%ld\t%c\t%ld\n", tmp->pid, 'J', jiffies); //就绪态
 		tmp->state=0;
@@ -229,8 +231,7 @@ void wake_up(struct task_struct **p)
 	if (p && *p) {
 		if((**p).state == TASK_RUNNING)
 			fprintk(3, "%ld\t%c\t%ld\n", (**p).pid, 'J', jiffies); //就绪态
-		(**p).state=0;
-		*p=NULL;
+		(**p).state=0;	/* 唤醒链表头进程 */
 	}
 }
 

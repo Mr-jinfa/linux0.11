@@ -60,7 +60,7 @@ sa_mask = 4
 sa_flags = 8
 sa_restorer = 12
 
-nr_system_calls = 74	#这是系统调用总数。如果增删了系统调用，必须做相应修改
+nr_system_calls = 82	#这是系统调用总数。如果增删了系统调用，必须做相应修改
 
 /*
  * Ok, I get parallel printer interrupts while using the floppy for some
@@ -228,7 +228,7 @@ timer_interrupt:
 	push %ds		# save ds,es and put kernel data space
 	push %es		# into them. %fs is used by _system_call
 	push %fs
-	pushl %edx		# we save %eax,%ecx,%edx as gcc doesn't
+	pushl %edx		# we save %eax,%ecx,%edx as gcc doesn't'
 	pushl %ecx		# save those across function calls. %ebx
 	pushl %ebx		# is saved as we use that in ret_sys_call
 	pushl %eax

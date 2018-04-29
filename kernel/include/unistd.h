@@ -54,6 +54,8 @@
 #include <sys/times.h>
 #include <sys/utsname.h>
 #include <utime.h>
+#include <sys/sem.h>
+#include <sys/lock.h>
 
 #ifdef __LIBRARY__
 
@@ -131,6 +133,16 @@
 #define __NR_setregid	71
 #define __NR_whoami		72
 #define __NR_iam		73
+
+#define __NR_sem_open	74
+#define __NR_sem_wait	75
+#define __NR_sem_post	76
+#define __NR_sem_unlink 77
+
+#define __NR_lock_init 78
+#define __NR_mutex_lock 79
+#define __NR_mutex_unlock 80
+#define __NR_lock_del 81
 
 #define _syscall0(type,name) \
 type name(void) \
@@ -253,5 +265,15 @@ pid_t getpgrp(void);
 pid_t setsid(void);
 int iam(const char *name);
 int whoami(char *name, unsigned int size);
+
+sem_t *sem_open(const char *name, unsigned int value);
+int sem_wait(sem_t *sem);
+int sem_post(sem_t *sem);
+int sem_unlink(const char *name);
+
+lock_t *lock_init(const char *name);
+void mutex_lock(lock_t * lkh);
+void mutex_unlock(lock_t * lkh);
+int lock_del(const char *name);
 
 #endif

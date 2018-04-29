@@ -41,18 +41,18 @@ struct blk_dev_struct blk_dev[NR_BLK_DEV] = {
 
 static inline void lock_buffer(struct buffer_head * bh)
 {
-	cli();
+	cli();	/* 关中断 */
 	while (bh->b_lock)
-		sleep_on(&bh->b_wait);
-	bh->b_lock=1;
-	sti();
+		sleep_on(&bh->b_wait);	/* 如果锁上,那么该进程睡眠并调度 */
+	bh->b_lock=1;	/* 获得锁 */
+	sti();	/* 开中断 */
 }
 
 static inline void unlock_buffer(struct buffer_head * bh)
 {
 	if (!bh->b_lock)
 		printk("ll_rw_block.c: buffer not locked\n\r");
-	bh->b_lock = 0;
+	bh->b_lock = 0;	/* 解锁 */
 	wake_up(&bh->b_wait);
 }
 

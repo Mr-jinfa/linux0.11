@@ -10,16 +10,15 @@ APP_CONSUMER=consumer
 APP_PRODUCT=product
 
 CC=gcc
-LDFLAGS=-lm -pthread
 
 .PHONY: $(PHONY) 
 
 consumer: $(obj_consumer)
 	@echo -e "\e[0;32;1mCompile $(APP_CONSUMER)...\e[0;36;1m\e[0m"
-	$(CC) -o $(APP_CONSUMER)   $^   $(LDFLAGS)
+	$(CC) -o $(APP_CONSUMER)   $^
 product: $(obj_product)
 	@echo -e "\e[0;32;1mCompile $(APP_PRODUCT)...\e[0;36;1m\e[0m"
-	$(CC) -o $(APP_PRODUCT)    $^   $(LDFLAGS)
+	$(CC) -o $(APP_PRODUCT)    $^
 
 %.o:%.c
 	$(CC) -c -o $@ $<
