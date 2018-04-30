@@ -19,13 +19,14 @@
 struct share_subclass {
 	char *data;/*数据域:*/
 };
-/*#define UBANTU*/
-#undef UBANTU
+#define UBANTU
+/*#undef UBANTU*/
 #ifndef UBANTU
-/*这个在linux0.11使用*/
-#define sem_full "666"
+#include <sys/lock.h>
+/*这个在linux0.11使用 PS:名字过长会出错,寄存器问题?*/
+#define sem_full  "666"
 #define sem_empty "667"
-
+#define m_lock	  "mux"
 
 #else
 /*这个在ubantu使用*/
@@ -46,5 +47,5 @@ extern 	key_t sem_id;
 #define full  1
 #define fbuff  "sem_buff_1.txt"    /*用文件建立一个共享缓冲区*/
 #define size_with	4
-#define count 3
+#define count 50
 #endif

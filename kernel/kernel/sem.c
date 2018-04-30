@@ -33,51 +33,49 @@ int sem_cnt = 0;
 sem_t *sys_sem_open(const char *name, unsigned int value)
 {
 	char kernelname[SEM_NAME_LEN];
-    int isExist = 0;
-    int i=0;
-    int name_cnt=0,name_len=0, sem_name_len=0;
+	int isExist = 0;
+	int i=0;
+	int name_cnt=0,name_len=0, sem_name_len=0;
 	
 	/*检查长度*/
-    while( get_fs_byte(name+name_cnt) != '\0')
-   		name_cnt++;
-    if(name_cnt>SEM_NAME_LEN)
-    	return NULL;
+	while( get_fs_byte(name+name_cnt) != '\0')
+		name_cnt++;
+	if(name_cnt>SEM_NAME_LEN)
+		return NULL;
 
 	/*获取信号量名字*/
-    for(i=0;i<name_cnt;i++)
-    	kernelname[i]=get_fs_byte(name+i);
-	
-    name_len = strlen(kernelname);
+	for(i=0;i<name_cnt;i++)
+		kernelname[i]=get_fs_byte(name+i);
+
+	name_len = strlen(kernelname);
 	/* 再次检查 */
 	if(name_len != name_cnt)
 		return NULL;
 
-    sem_t *p=NULL;
-    for(i=0;i<lock_cnt;i++)
-    {
-    	/*匹配信号量表*/
-        sem_name_len = strlen(semtable[i].name);
-        if(sem_name_len == name_len)
-            if( !strcmp(kernelname,semtable[i].name) )
-            {
-                isExist = 1;
-                break;
-            }
-    }
-    if(isExist == 1)
-        p=(sem_t*)(&semtable[i]);
-    else
-    {
-        for(i=0;i<name_len;i++)
-        {
-            semtable[lock_cnt].name[i]=kernelname[i];
-        }
-        semtable[lock_cnt].value = value;
-        p=(sem_t*)(&semtable[lock_cnt]);
-        /*printk("creat sem!\n");*/
-        lock_cnt++;
-     }
-    return p;
+	sem_t *p=NULL;
+	for(i=0;i<sem_cnt;i++)
+	{
+		/*匹配信号量表*/
+		sem_name_len = strlen(semtable[i].name);
+		if(sem_name_len == name_len)
+		if( !strcmp(kernelname,semtable[i].name) )
+		{
+			isExist = 1;
+			break;
+		}
+	}
+	if(isExist == 1)
+		p=(sem_t*)(&semtable[i]);
+	else
+	{
+		for(i=0;i<name_len;i++)
+			semtable[sem_cnt].name[i]=kernelname[i];
+		semtable[sem_cnt].value = value;
+		p=(sem_t*)(&semtable[sem_cnt]);
+		/*printk("creat sem!\n");*/
+		sem_cnt++;
+	}
+	return p;
 }
 
 /*本函数参考ll_rw_blk.c lock_buffer()
@@ -113,51 +111,49 @@ int sys_sem_post(sem_t *sem)
 */
 int sys_sem_unlink(const char *name)
 {
-	{
 	char kernelname[SEM_NAME_LEN];
-    int isExist = 0;
-    int i=0;
-    int name_cnt=0,name_len=0, sem_name_len=0;
+	int isExist = 0;
+	int i=0;
+	int name_cnt=0,name_len=0, sem_name_len=0;
 	
 	/*检查长度*/
-    while( get_fs_byte(name+name_cnt) != '\0')
-   		name_cnt++;
-    if(name_cnt>SEM_NAME_LEN)
-    	return -1;
+	while( get_fs_byte(name+name_cnt) != '\0')
+		name_cnt++;
+	if(name_cnt>SEM_NAME_LEN)
+		return -1;
 
 	/*获取信号量名字*/
-    for(i=0;i<name_cnt;i++)
-    	kernelname[i]=get_fs_byte(name+i);
+	for(i=0;i<name_cnt;i++)
+		kernelname[i]=get_fs_byte(name+i);
 	
-    name_len = strlen(kernelname);
+	name_len = strlen(kernelname);
 	printk("name_len:%d   name_cnt:%d\n",name_len, name_cnt);
 	/* 再次检查 */
 	if(name_len != name_cnt)
 		return -1;
-    for(i=0;i<cnt;i++)
-    {
-    	/*匹配信号量表*/
-        sem_name_len = strlen(semtable[i].name);
-        if(sem_name_len == name_len)
-            if( !strcmp(kernelname,semtable[i].name) )
-            {
-                isExist = 1;
-                break;
-            }
-    }
-    if(isExist == 1)
-    {
-       int tmp=0;
-	   for(tmp=i; tmp<=cnt; tmp++)
-	   {
+	for(i=0;i<sem_cnt;i++)
+	{
+		/*匹配信号量表*/
+		sem_name_len = strlen(semtable[i].name);
+		if(sem_name_len == name_len)
+		if( !strcmp(kernelname,semtable[i].name) )
+		{
+			isExist = 1;
+			break;
+		}
+	}
+	if(isExist == 1)
+	{
+		int tmp=0;
+		for(tmp=i; tmp<=sem_cnt; tmp++)
+		{
 			semtable[tmp] = semtable[tmp+1];
-	   }
-	   cnt--;
-    }
-    else
-       return -1;
+		}
+		sem_cnt--;
+	}
+	else
+	return -1;
 
-    return 0;
-}
+	return 0;
 }
 

@@ -5,10 +5,9 @@
 #define LOCK_NAME_LEN    32
 
 typedef struct mutex{
-    char name[LOCK_NAME_LEN];
-    int lock;
-    struct task_struct *queue;
+	char name[LOCK_NAME_LEN];
+	int lock;
+	struct task_struct *queue;
 } lock_t;
 extern lock_t locktable[LOCKTABLE_LEN];
-
 #endif

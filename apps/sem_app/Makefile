@@ -18,7 +18,7 @@ consumer: $(obj_consumer)
 	$(CC) -o $(APP_CONSUMER)   $^
 product: $(obj_product)
 	@echo -e "\e[0;32;1mCompile $(APP_PRODUCT)...\e[0;36;1m\e[0m"
-	$(CC) -o $(APP_PRODUCT)    $^
+	$(CC) -o $(APP_PRODUCT)    $^ -lm
 
 %.o:%.c
 	$(CC) -c -o $@ $<
