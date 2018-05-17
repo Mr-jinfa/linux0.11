@@ -86,6 +86,8 @@ extern void sys_mutex_lock();
 extern void sys_mutex_unlock();
 extern int sys_lock_del();
 
+int sys_shmget();
+void *sys_shmat();
 
 fn_ptr sys_call_table[] = { sys_setup, sys_exit, sys_fork, sys_read,
 sys_write, sys_open, sys_close, sys_waitpid, sys_creat, sys_link,
@@ -100,4 +102,4 @@ sys_lock, sys_ioctl, sys_fcntl, sys_mpx, sys_setpgid, sys_ulimit,
 sys_uname, sys_umask, sys_chroot, sys_ustat, sys_dup2, sys_getppid,
 sys_getpgrp, sys_setsid, sys_sigaction, sys_sgetmask, sys_ssetmask,
 sys_setreuid,sys_setregid, sys_whoami, sys_iam, sys_sem_open, sys_sem_wait, sys_sem_post, sys_sem_unlink,
-sys_lock_init, sys_mutex_lock, sys_mutex_unlock, sys_lock_del};
+sys_lock_init, sys_mutex_lock, sys_mutex_unlock, sys_lock_del, sys_shmget, sys_shmat};

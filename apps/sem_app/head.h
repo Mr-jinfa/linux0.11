@@ -21,7 +21,7 @@
 struct share_subclass {
 	char *data;/*数据域:*/
 };
-
+#define PROJ_ID 1
 #define fshare  0
 #define mshare  1
 
@@ -34,8 +34,8 @@ struct share_subclass {
 #define condition_share mshare
 #endif
 
-#define UBANTU
-/*#undef UBANTU*/
+/*#define UBANTU*/
+#undef UBANTU
 #ifndef UBANTU
 #include <sys/lock.h>
 /*这个在linux0.11使用 PS:名字过长会出错,寄存器问题?*/
@@ -46,7 +46,6 @@ struct share_subclass {
 /*这个在ubantu使用*/
 #include <sys/ipc.h>
 #define PROJ_PATH "~/oslab/code/linux0.11/apps/sem_app/"
-#define PROJ_ID 1
 #define sem_name 668
 union semun  
 {

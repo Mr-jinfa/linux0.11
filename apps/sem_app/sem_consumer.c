@@ -15,6 +15,7 @@
  *2018.4.30 完全实现ubantu下的消费者功能
  *2018.4.30 完全实现linux0.11下的消费者功能
  *2018.5.18 实现ubantu下的共享内存消费者功能
+ *2018.5.18 实现linux0.11下的共享内存消费者功能
 */
 
 #include "head.h"
@@ -46,12 +47,10 @@ int main(int argc, char *argv[])
 	int share_file=0;
 	pid_t pid=0;
 	int *wait_stat;
-	
+	char *shmaddr = NULL;
 #ifdef UBANTU
     pthread_mutex_t m;
 	pthread_mutex_init(&m, NULL);
-	char *shmaddr = NULL;
-
 	sem_id = semget((key_t)sem_name, 2,IPC_CREAT|IPC_EXCL|0666);
 	 if(sem_id >= 0)
 	 {
@@ -91,6 +90,7 @@ if (condition_share == mshare)
 #else
 	sem_t *s_empty, *s_full;
 	lock_t *m;
+	int shm_id;
 	s_empty = sem_open(sem_empty, 10);
 	s_full = sem_open(sem_full, 0);
 	if(s_empty==NULL || s_full==NULL)
@@ -105,6 +105,12 @@ if (condition_share == mshare)
 		fprintf(stderr,"get lock fail\n");
 		return -1;
 	}
+	if (condition_share == mshare)
+	{
+		shm_id = shmget(PROJ_ID, 4096);
+		shmaddr = shmat(shm_id);
+	}
+
 #endif
 	if (condition_share == fshare)
 		share_file = open(fbuff, O_RDONLY ,0666);
@@ -116,13 +122,13 @@ if (condition_share == mshare)
 #ifdef UBANTU
 		sem_p(sem_id, full);
 		pthread_mutex_lock(&m);
-		if (condition_share == mshare)
-			memcpy(c_data, shmaddr, size_with);
 #else
 		sem_wait(s_full);
 		mutex_lock(m);
 #endif
 		/*读1个数*/
+		if (condition_share == mshare)
+			memcpy(c_data, shmaddr, size_with);
 		if (condition_share == fshare)
 			read(share_file, c_data, size_with);
 		if(c_data[0] !=NULL)

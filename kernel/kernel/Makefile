@@ -26,7 +26,7 @@ CPP	=gcc-3.4 -E -nostdinc -I../include
 
 OBJS  = sched.o system_call.o traps.o asm.o fork.o \
 	panic.o printk.o vsprintf.o sys.o exit.o \
-	signal.o mktime.o who.o sem.o lock.o
+	signal.o mktime.o who.o sem.o lock.o shm.o
 
 kernel.o: $(OBJS)
 	$(LD) -m elf_i386 -r -o kernel.o $(OBJS)
@@ -48,6 +48,9 @@ dep:
 	(cd blk_drv; make dep)
 
 ### Dependencies:
+shm.s shm.o: shm.c ../include/linux/kernel.h ../include/unistd.h \
+  ../include/asm/segment.h ../include/errno.h ../include/sys/shm.h
+
 lock.s lock.o: lock.c ../include/linux/kernel.h ../include/unistd.h \
   ../include/asm/segment.h ../include/errno.h ../include/sys/lock.h
 

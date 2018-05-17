@@ -128,6 +128,7 @@
 #define __NR_setsid	66
 #define __NR_sigaction	67
 #define __NR_sgetmask	68
+
 #define __NR_ssetmask	69
 #define __NR_setreuid	70
 #define __NR_setregid	71
@@ -143,6 +144,9 @@
 #define __NR_mutex_lock 79
 #define __NR_mutex_unlock 80
 #define __NR_lock_del 81
+
+#define __NR_shmget		82
+#define __NR_shmat		83
 
 #define _syscall0(type,name) \
 type name(void) \
@@ -275,5 +279,8 @@ lock_t *lock_init(const char *name);
 void mutex_lock(lock_t * lkh);
 void mutex_unlock(lock_t * lkh);
 int lock_del(const char *name);
+
+int shmget(size_t key, size_t size);
+void *shmat(int shmid);
 
 #endif

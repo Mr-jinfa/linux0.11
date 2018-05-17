@@ -14,6 +14,7 @@
  *2018.4.24 最多支持size_with位数,也就说程序不支持动态调整位数.
  *2018.4.30 完全实现ubantu下的生产者功能
  *2018.5.18 实现ubantu下的共享内存生产者功能
+ *2018.5.18 实现linux0.11下的共享内存生产者功能
  *
 */
 
@@ -59,9 +60,9 @@ int main(int argc, char *argv[])
 	struct share_subclass subc;
 	int var=0; int i=0; int share_file=0;
 	char k=0; char n; char m; char c;
-#ifdef UBANTU
+	int shm_id;
 	char *shmaddr = NULL;
-
+#ifdef UBANTU
     sem_id = semget((key_t)sem_name, 2,IPC_CREAT|IPC_EXCL|0666);
     if(sem_id >= 0)
 	{
@@ -110,6 +111,11 @@ int main(int argc, char *argv[])
 		fprintf(stderr,"get sem fail\n");
 		return -1;
 	}
+	if (condition_share == mshare)
+	{
+		shm_id = shmget(PROJ_ID, 4096);
+		shmaddr = shmat(shm_id);
+	}
 #endif
 
 if (condition_share == fshare)
@@ -150,18 +156,17 @@ if (condition_share == fshare)
 					n--; m++;
 				}
 			}
-
 if (condition_share == fshare)
 			write(share_file, c_data, size_with);
 if (condition_share == mshare)
 			memcpy(shmaddr, c_data, size_with);
-			fprintf(stderr,"%d:write:%s	\n",getpid(), c_data);
+//			fprintf(stderr,"%d:write:%s	\n",getpid(), c_data);
 #ifdef UBANTU
 			sem_v(sem_id, full);
 #else
 			sem_post(s_full);
 #endif
-			usleep(80000);
+			sleep(1);
 			global_var ++;
 		}
 		circul++;
